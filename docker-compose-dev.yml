@@ -1,0 +1,65 @@
+include:
+  - docker-compose.yml
+
+x-defaults: &defaults
+  restart: on-failure:3
+  stdin_open: true
+  tty: true
+services:
+  db:
+    <<: *defaults
+    image: mysql:8.0.43
+    container_name: db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3307:3306"
+    networks:
+      ezgo_network:
+        ipv4_address: ${DB_IPV4}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "127.0.0.1",
+          "-uroot",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    <<: *defaults
+    image: nginx:1.29.2-alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/log:/var/log/nginx
+      - ./nginx/backend_admin.conf:/etc/nginx/conf.d/backend_admin.conf:ro
+      - ./nginx/frontend_admin.conf:/etc/nginx/conf.d/frontend_admin.conf:ro
+      - ./nginx/backend_user.conf:/etc/nginx/conf.d/backend_user.conf:ro
+      - ./nginx/frontend_user.conf:/etc/nginx/conf.d/frontend_user.conf:ro
+    networks:
+      ezgo_network:
+        ipv4_address: ${NGINX_IPV4}
+
+  frontend-user:
+    <<: *defaults
+    build:
+      context: ./frontend-user
+    container_name: frontend-user
+    environment:
+      APP_HOST: ${APP_HOST}
+    command: ["bash", "bin/start_server_dev"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend-user:/frontend-user
+    networks:
+      ezgo_network:
+        ipv4_address: ${FRONTEND_USER_IPV4}

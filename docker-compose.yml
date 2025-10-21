@@ -1,0 +1,10 @@
+name: ezgo_system
+
+networks:
+  ezgo_network:
+    ipam:
+      driver: default
+      config:
+        - subnet: ${EZGO_NETWORK_SUBNET}
+          ip_range: ${EZGO_NETWORK_IP_RANGE}
+          gateway: ${EZGO_NETWORK_GATEWAY}
