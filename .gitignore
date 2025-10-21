@@ -1,0 +1,14 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# debug
+/nginx/log/*.log
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+
+# Secrets files
+db_host.txt
+db_username.txt
+db_password.txt
+db_root_password.txt

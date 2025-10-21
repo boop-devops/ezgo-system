@@ -1,0 +1,115 @@
+include:
+  - docker-compose.yml
+
+x-defaults: &defaults
+  restart: on-failure:3
+  stdin_open: true
+  tty: true
+
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 5s
+  retries: 3
+
+services:
+  db:
+    <<: *defaults
+    image: mysql:8.0.43
+    container_name: db
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MYSQL_USER_FILE: /run/secrets/db_username
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_root_password
+      - db_username
+      - db_password
+    ports:
+      - "3307:3306"
+    healthcheck:
+      <<: *healthcheck
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u$(cat /run/secrets/db_username)",
+          "-p$(cat /run/secrets/db_password)",
+        ]
+    networks:
+      ezgo_network:
+        ipv4_address: ${DB_IPV4}
+
+  nginx:
+    <<: *defaults
+    image: nginx:1.29.2-alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/log:/var/log/nginx
+      - ./nginx/backend_admin.conf:/etc/nginx/conf.d/backend_admin.conf:ro
+      - ./nginx/frontend_admin.conf:/etc/nginx/conf.d/frontend_admin.conf:ro
+      - ./nginx/backend_user.conf:/etc/nginx/conf.d/backend_user.conf:ro
+      - ./nginx/frontend_user.conf:/etc/nginx/conf.d/frontend_user.conf:ro
+      - ./nginx/healthcheck.conf:/etc/nginx/conf.d/healthcheck.conf:ro
+    depends_on:
+      frontend-user:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost/healthcheck"]
+    networks:
+      ezgo_network:
+        ipv4_address: ${NGINX_IPV4}
+
+  frontend-user:
+    <<: *defaults
+    build:
+      context: ./frontend-user
+      dockerfile: dev.Dockerfile
+    container_name: frontend-user
+    command: ["bash", "bin/start_server_dev"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend-user:/frontend-user
+    depends_on:
+      backend-user:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:3000/healthcheck"]
+    networks:
+      ezgo_network:
+        ipv4_address: ${FRONTEND_USER_IPV4}
+
+  backend-user:
+    <<: *defaults
+    build:
+      context: ./backend-user
+      dockerfile: dev.Dockerfile
+    container_name: backend-user
+    secrets:
+      - db_host
+      - db_username
+      - db_password
+    environment:
+      DB_HOST_FILE: /run/secrets/db_host
+      DB_USERNAME_FILE: /run/secrets/db_username
+      DB_PASSWORD_FILE: /run/secrets/db_password
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./backend-user:/backend-user
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/healthcheck"]
+    networks:
+      ezgo_network:
+        ipv4_address: ${BACKEND_USER_IPV4}

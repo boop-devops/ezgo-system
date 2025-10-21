@@ -1,0 +1,10 @@
+#!/bin/bash
+
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+printf "$YELLOW◉ bun install --frozen-lockfile$NC\n"
+bun install --frozen-lockfile
+
+printf "$YELLOW◉ bun dev -p 3000$NC\n"
+bun dev -p 3000

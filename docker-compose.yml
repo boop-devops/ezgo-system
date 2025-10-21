@@ -1,0 +1,20 @@
+name: ezgo_system
+
+networks:
+  ezgo_network:
+    ipam:
+      driver: default
+      config:
+        - subnet: ${EZGO_NETWORK_SUBNET}
+          ip_range: ${EZGO_NETWORK_IP_RANGE}
+          gateway: ${EZGO_NETWORK_GATEWAY}
+
+secrets:
+  db_host:
+    file: db_host.txt
+  db_username:
+    file: db_username.txt
+  db_password:
+    file: db_password.txt
+  db_root_password:
+    file: db_root_password.txt
