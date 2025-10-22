@@ -1,10 +1,15 @@
 import { defineConfig, globalIgnores } from 'eslint/config';
 import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import react from 'eslint-plugin-react';
 
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  eslintConfigPrettier,
+  eslintPluginPrettierRecommended,
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -14,10 +19,18 @@ const eslintConfig = defineConfig([
     'next-env.d.ts',
   ]),
   {
+    plugins: { react },
     rules: {
-      'semi': ['error', 'always'],
-      'quotes': ['error', 'single'],
-      'indent': ['error', 2],
+      'prettier/prettier': [
+        'error',
+        {
+          semi: true,
+          singleQuote: true,
+          tabWidth: 2,
+          printWidth: 120,
+        },
+      ],
+      'react/jsx-max-props-per-line': ['error', { maximum: 3 }],
     },
   },
 ]);
